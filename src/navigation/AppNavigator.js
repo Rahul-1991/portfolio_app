@@ -2,8 +2,10 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
 
+import AddCryptoScreen from '../screens/AddCryptoScreen';
 import AddMutualFundScreen from '../screens/AddMutualFundScreen';
 import AddStockScreen from '../screens/AddStockScreen';
+import CryptocurrencyScreen from '../screens/CryptocurrencyScreen';
 import DashboardScreen from '../screens/DashboardScreen';
 import FixedDepositScreen from '../screens/FixedDepositScreen';
 import ImportMutualFundScreen from '../screens/ImportMutualFundScreen';
@@ -25,6 +27,10 @@ const AppNavigator = () => {
           headerTintColor: '#fff',
           headerTitleStyle: {
             fontWeight: 'bold',
+          },
+          headerStatusBarHeight: 0,
+          contentStyle: {
+            paddingTop: 0,
           },
         }}
       >
@@ -67,6 +73,16 @@ const AppNavigator = () => {
           name="FixedDeposit" 
           component={FixedDepositScreen}
           options={{ title: 'Fixed Deposits' }}
+        />
+        <Stack.Screen 
+          name="Cryptocurrency" 
+          component={CryptocurrencyScreen}
+          options={{ title: 'Cryptocurrency Portfolio' }}
+        />
+        <Stack.Screen 
+          name="AddCrypto" 
+          component={AddCryptoScreen}
+          options={{ title: 'Add Cryptocurrency' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

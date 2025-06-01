@@ -39,8 +39,9 @@
       }
     },
     "owner": "rustyrabbit1991",
-    "runtimeVersion": {
-      "policy": "sdkVersion"
+    "runtimeVersion": "1.0.0",
+    "updates": {
+      "url": "https://u.expo.dev/3cc3c743-7f90-45ef-b810-a1405926c925"
     }
   }
 }

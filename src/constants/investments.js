@@ -15,13 +15,18 @@ export const INVESTMENT_TYPES = {
     id: 'stocks',
     name: 'Stocks',
     icon: 'trending-up',
-    color: '#F44336',
+    color: '#9C27B0',
   },
   MUTUAL_FUNDS: {
     id: 'mf',
     name: 'Mutual Funds',
     icon: 'chart-line',
-    color: '#9C27B0',
+    color: '#FF9800',
+  },
+  CRYPTOCURRENCY: {
+    id: 'crypto',
+    name: 'Cryptocurrency',
+    color: '#F44336',
   },
 };
 

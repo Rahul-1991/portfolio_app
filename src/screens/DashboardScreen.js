@@ -13,6 +13,7 @@ const DashboardScreen = ({ navigation }) => {
       fd: { total: 0, count: 0 },
       stocks: { total: 0, count: 0 },
       mf: { total: 0, count: 0 },
+      crypto: { total: 0, count: 0 },
     },
   });
 
@@ -20,7 +21,14 @@ const DashboardScreen = ({ navigation }) => {
 
   const clearAllData = async () => {
     try {
-      await AsyncStorage.multiRemove(['portfolioData', 'transactions_rd', 'transactions_fd', 'transactions_stocks', 'transactions_mf']);
+      await AsyncStorage.multiRemove([
+        'portfolioData',
+        'transactions_rd',
+        'transactions_fd',
+        'transactions_stocks',
+        'transactions_mf',
+        'transactions_crypto'
+      ]);
       setPortfolioData({
         totalInvestment: 0,
         investments: {
@@ -28,6 +36,7 @@ const DashboardScreen = ({ navigation }) => {
           fd: { total: 0, count: 0 },
           stocks: { total: 0, count: 0 },
           mf: { total: 0, count: 0 },
+          crypto: { total: 0, count: 0 },
         },
       });
     } catch (error) {
@@ -37,11 +46,80 @@ const DashboardScreen = ({ navigation }) => {
 
   const loadPortfolioData = async () => {
     try {
-      const data = await AsyncStorage.getItem('portfolioData');
-      if (data) {
-        const parsedData = JSON.parse(data);
-        setPortfolioData(parsedData);
+      // Load all transactions
+      const [rdData, fdData, stocksData, mfData, cryptoData] = await Promise.all([
+        AsyncStorage.getItem('transactions_rd'),
+        AsyncStorage.getItem('transactions_fd'),
+        AsyncStorage.getItem('transactions_stocks'),
+        AsyncStorage.getItem('transactions_mf'),
+        AsyncStorage.getItem('transactions_crypto')
+      ]);
+
+      const investments = {
+        rd: { total: 0, count: 0 },
+        fd: { total: 0, count: 0 },
+        stocks: { total: 0, count: 0 },
+        mf: { total: 0, count: 0 },
+        crypto: { total: 0, count: 0 },
+      };
+
+      // Calculate RD total
+      if (rdData) {
+        const rdTransactions = JSON.parse(rdData);
+        investments.rd = {
+          total: rdTransactions.reduce((sum, t) => sum + t.amount, 0),
+          count: rdTransactions.length
+        };
       }
+
+      // Calculate FD total
+      if (fdData) {
+        const fdTransactions = JSON.parse(fdData);
+        investments.fd = {
+          total: fdTransactions.reduce((sum, t) => sum + t.amount, 0),
+          count: fdTransactions.length
+        };
+      }
+
+      // Calculate Stocks total
+      if (stocksData) {
+        const stockTransactions = JSON.parse(stocksData);
+        investments.stocks = {
+          total: stockTransactions.reduce((sum, t) => sum + t.investmentAmount, 0),
+          count: stockTransactions.length
+        };
+      }
+
+      // Calculate MF total
+      if (mfData) {
+        const mfTransactions = JSON.parse(mfData);
+        investments.mf = {
+          total: mfTransactions.reduce((sum, t) => sum + t.investmentAmount, 0),
+          count: mfTransactions.length
+        };
+      }
+
+      // Calculate Crypto total
+      if (cryptoData) {
+        const cryptoTransactions = JSON.parse(cryptoData);
+        investments.crypto = {
+          total: cryptoTransactions.reduce((sum, t) => sum + t.investmentAmount, 0),
+          count: cryptoTransactions.length
+        };
+      }
+
+      const totalInvestment = Object.values(investments).reduce(
+        (sum, inv) => sum + inv.total,
+        0
+      );
+
+      const portfolioData = {
+        totalInvestment,
+        investments,
+      };
+
+      await AsyncStorage.setItem('portfolioData', JSON.stringify(portfolioData));
+      setPortfolioData(portfolioData);
     } catch (error) {
       console.error('Error loading portfolio data:', error);
     }
@@ -66,7 +144,8 @@ const DashboardScreen = ({ navigation }) => {
             rd: 'RecurringDeposit',
             fd: 'FixedDeposit',
             stocks: 'Stocks',
-            mf: 'MutualFunds'
+            mf: 'MutualFunds',
+            crypto: 'Cryptocurrency'
           }[investment.id];
           
           navigation.navigate(screenName, { investmentId: investment.id });
@@ -98,7 +177,7 @@ const DashboardScreen = ({ navigation }) => {
       </Surface>
 
       <View style={styles.cardsContainer}>
-        {['RECURRING_DEPOSIT', 'FIXED_DEPOSIT', 'STOCKS', 'MUTUAL_FUNDS'].map(type => 
+        {['RECURRING_DEPOSIT', 'FIXED_DEPOSIT', 'STOCKS', 'MUTUAL_FUNDS', 'CRYPTOCURRENCY'].map(type => 
           renderInvestmentCard(type)
         )}
       </View>
