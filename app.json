@@ -15,16 +15,32 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.rustyrabbit1991.portfolio"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.rustyrabbit1991.portfolio_app",
+      "versionCode": 1,
+      "permissions": [],
+      "softwareKeyboardLayoutMode": "pan",
+      "allowBackup": true,
+      "buildType": "apk"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "3cc3c743-7f90-45ef-b810-a1405926c925"
+      }
+    },
+    "owner": "rustyrabbit1991",
+    "runtimeVersion": {
+      "policy": "sdkVersion"
     }
   }
 }

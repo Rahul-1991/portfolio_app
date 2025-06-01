@@ -285,10 +285,9 @@ const MutualFundsScreen = ({ navigation }) => {
         }
       >
         <View style={styles.content}>
-          {renderSummaryCard()}
-          
           {investments.length > 0 ? (
             <>
+              {renderSummaryCard()}
               <View style={styles.actionButtons}>
                 <Button
                   mode="contained"

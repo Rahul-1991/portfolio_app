@@ -5,8 +5,10 @@ import React from 'react';
 import AddMutualFundScreen from '../screens/AddMutualFundScreen';
 import AddStockScreen from '../screens/AddStockScreen';
 import DashboardScreen from '../screens/DashboardScreen';
+import FixedDepositScreen from '../screens/FixedDepositScreen';
 import ImportMutualFundScreen from '../screens/ImportMutualFundScreen';
 import MutualFundsScreen from '../screens/MutualFundsScreen';
+import RecurringDepositScreen from '../screens/RecurringDepositScreen';
 import StocksScreen from '../screens/StocksScreen';
 
 const Stack = createNativeStackNavigator();
@@ -55,6 +57,16 @@ const AppNavigator = () => {
           name="ImportMutualFund" 
           component={ImportMutualFundScreen}
           options={{ title: 'Import Existing Investment' }}
+        />
+        <Stack.Screen 
+          name="RecurringDeposit" 
+          component={RecurringDepositScreen}
+          options={{ title: 'Recurring Deposits' }}
+        />
+        <Stack.Screen 
+          name="FixedDeposit" 
+          component={FixedDepositScreen}
+          options={{ title: 'Fixed Deposits' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

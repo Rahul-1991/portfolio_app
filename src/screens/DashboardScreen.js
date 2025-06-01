@@ -20,7 +20,6 @@ const DashboardScreen = ({ navigation }) => {
 
   const clearAllData = async () => {
     try {
-      // Clear only portfolio-related data
       await AsyncStorage.multiRemove(['portfolioData', 'transactions_rd', 'transactions_fd', 'transactions_stocks', 'transactions_mf']);
       setPortfolioData({
         totalInvestment: 0,
@@ -54,30 +53,24 @@ const DashboardScreen = ({ navigation }) => {
     }, [])
   );
 
-  const renderInvestmentCard = (type) => {
-    const investment = INVESTMENT_TYPES[type];
+  const renderInvestmentCard = (investmentType) => {
+    const investment = INVESTMENT_TYPES[investmentType];
     const data = portfolioData.investments[investment.id];
-
-    const getScreenName = (investmentId) => {
-      switch (investmentId) {
-        case 'fd':
-          return 'FixedDeposit';
-        case 'rd':
-          return 'RecurringDeposit';
-        case 'stocks':
-          return 'Stocks';
-        case 'mf':
-          return 'MutualFunds';
-        default:
-          return 'Dashboard'; // Fallback, or you can handle other types
-      }
-    };
 
     return (
       <Card
         key={investment.id}
         style={styles.card}
-        onPress={() => navigation.navigate(getScreenName(investment.id), { investmentId: investment.id })}
+        onPress={() => {
+          const screenName = {
+            rd: 'RecurringDeposit',
+            fd: 'FixedDeposit',
+            stocks: 'Stocks',
+            mf: 'MutualFunds'
+          }[investment.id];
+          
+          navigation.navigate(screenName, { investmentId: investment.id });
+        }}
       >
         <Card.Content>
           <Title style={{ color: investment.color }}>{investment.name}</Title>
@@ -105,7 +98,9 @@ const DashboardScreen = ({ navigation }) => {
       </Surface>
 
       <View style={styles.cardsContainer}>
-        {Object.keys(INVESTMENT_TYPES).map((type) => renderInvestmentCard(type))}
+        {['RECURRING_DEPOSIT', 'FIXED_DEPOSIT', 'STOCKS', 'MUTUAL_FUNDS'].map(type => 
+          renderInvestmentCard(type)
+        )}
       </View>
     </ScrollView>
   );
