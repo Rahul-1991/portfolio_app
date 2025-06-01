@@ -64,6 +64,10 @@ const DashboardScreen = ({ navigation }) => {
           return 'FixedDeposit';
         case 'rd':
           return 'RecurringDeposit';
+        case 'stocks':
+          return 'Stocks';
+        case 'mf':
+          return 'MutualFunds';
         default:
           return 'Dashboard'; // Fallback, or you can handle other types
       }
