@@ -257,13 +257,13 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.rustyrabbit1991.portfolio";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.rustyrabbit1991.portfolio-app";
 				PRODUCT_NAME = "PortfolioTracker";
 				SWIFT_OBJC_BRIDGING_HEADER = "PortfolioTracker/PortfolioTracker-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = "1";
 				CODE_SIGN_ENTITLEMENTS = PortfolioTracker/PortfolioTracker.entitlements;
 			};
 			name = Debug;
@@ -286,12 +286,12 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.rustyrabbit1991.portfolio";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.rustyrabbit1991.portfolio-app";
 				PRODUCT_NAME = "PortfolioTracker";
 				SWIFT_OBJC_BRIDGING_HEADER = "PortfolioTracker/PortfolioTracker-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = "1";
 				CODE_SIGN_ENTITLEMENTS = PortfolioTracker/PortfolioTracker.entitlements;
 			};
 			name = Release;

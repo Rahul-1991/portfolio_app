@@ -125,15 +125,44 @@ const AddStockScreen = ({ route, navigation }) => {
         description: newTransaction.description,
         investedOn: new Date().toISOString(),
         sector: selectedStock.sector,
-        industry: selectedStock.industry
+        industry: selectedStock.industry,
+        investmentAmount: parseInt(newTransaction.quantity) * parseFloat(newTransaction.averagePrice)
       };
 
       // Load existing transactions
       const existingData = await AsyncStorage.getItem(`transactions_${investmentId}`);
       const transactions = existingData ? JSON.parse(existingData) : [];
       
-      // Add new transaction
-      const updatedTransactions = [...transactions, transaction];
+      // Check if stock already exists
+      const existingStockIndex = transactions.findIndex(t => t.symbol === transaction.symbol);
+      
+      let updatedTransactions;
+      if (existingStockIndex !== -1) {
+        // Stock exists, merge and average
+        const existingStock = transactions[existingStockIndex];
+        const totalQuantity = existingStock.quantity + transaction.quantity;
+        const totalInvestment = (existingStock.quantity * existingStock.averagePrice) + 
+                              (transaction.quantity * transaction.averagePrice);
+        const newAveragePrice = totalInvestment / totalQuantity;
+        
+        // Update existing stock entry
+        const updatedStock = {
+          ...existingStock,
+          quantity: totalQuantity,
+          averagePrice: newAveragePrice,
+          investmentAmount: totalInvestment,
+          description: transaction.description || existingStock.description,
+          lastUpdated: new Date().toISOString()
+        };
+        
+        // Replace old entry with updated one
+        updatedTransactions = [...transactions];
+        updatedTransactions[existingStockIndex] = updatedStock;
+      } else {
+        // New stock, add to list
+        updatedTransactions = [...transactions, transaction];
+      }
+
       await AsyncStorage.setItem(
         `transactions_${investmentId}`,
         JSON.stringify(updatedTransactions)
@@ -151,9 +180,18 @@ const AddStockScreen = ({ route, navigation }) => {
         }
       };
 
+      if (!portfolioData.investments[investmentId]) {
+        portfolioData.investments[investmentId] = { total: 0, count: 0 };
+      }
+
       const totalInvestment = transaction.quantity * transaction.averagePrice;
       portfolioData.investments[investmentId].total = (portfolioData.investments[investmentId].total || 0) + totalInvestment;
-      portfolioData.investments[investmentId].count = (portfolioData.investments[investmentId].count || 0) + 1;
+      
+      // Only increment count for new stocks
+      if (existingStockIndex === -1) {
+        portfolioData.investments[investmentId].count = (portfolioData.investments[investmentId].count || 0) + 1;
+      }
+      
       portfolioData.totalInvestment = (portfolioData.totalInvestment || 0) + totalInvestment;
 
       await AsyncStorage.setItem('portfolioData', JSON.stringify(portfolioData));

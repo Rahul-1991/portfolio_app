@@ -37,55 +37,40 @@ const TransactionCard = ({ transaction }) => {
           <View style={baseStyles.headerContainer}>
             <View style={baseStyles.headerLeft}>
               <Text style={baseStyles.title}>{transaction.name}</Text>
-              <Text style={baseStyles.subtitle}>Amount: {formatCurrency(transaction.amount)}</Text>
+              <Text style={baseStyles.subtitle}>Amount: {formatCurrency(Math.round(transaction.amount), 0)}</Text>
             </View>
             <View style={baseStyles.headerRight}>
               <Text style={baseStyles.maturityLabel}>Matures on</Text>
               <Text style={baseStyles.maturityDate}>{formatDate(maturityDate)}</Text>
             </View>
           </View>
-
+          
           {expanded && (
-            <View style={baseStyles.expandedContent}>
+            <>
               <Divider style={baseStyles.divider} />
-              <Surface style={baseStyles.detailsContainer}>
+              <View style={baseStyles.detailsContainer}>
                 <View style={baseStyles.detailRow}>
                   <View style={baseStyles.detailItem}>
-                    <Text style={baseStyles.label}>Duration</Text>
-                    <Text style={baseStyles.value}>{transaction.duration} months</Text>
+                    <Text style={baseStyles.detailLabel}>Investment Date</Text>
+                    <Text style={baseStyles.detailValue}>{formatDate(transaction.investedOn)}</Text>
                   </View>
                   <View style={baseStyles.detailItem}>
-                    <Text style={baseStyles.label}>ROI</Text>
-                    <Text style={baseStyles.value}>{transaction.roi}%</Text>
+                    <Text style={baseStyles.detailLabel}>Duration</Text>
+                    <Text style={baseStyles.detailValue}>{transaction.duration} months</Text>
                   </View>
                 </View>
-
                 <View style={baseStyles.detailRow}>
                   <View style={baseStyles.detailItem}>
-                    <Text style={baseStyles.label}>Start Date</Text>
-                    <Text style={baseStyles.value}>{formatDate(transaction.investedOn)}</Text>
+                    <Text style={baseStyles.detailLabel}>Interest Rate</Text>
+                    <Text style={baseStyles.detailValue}>{transaction.roi}%</Text>
                   </View>
                   <View style={baseStyles.detailItem}>
-                    <Text style={baseStyles.label}>Maturity Date</Text>
-                    <Text style={baseStyles.value}>{formatDate(maturityDate)}</Text>
+                    <Text style={baseStyles.detailLabel}>Maturity Amount</Text>
+                    <Text style={baseStyles.detailValue}>{formatCurrency(Math.round(transaction.maturityAmount), 0)}</Text>
                   </View>
                 </View>
-
-                <View style={baseStyles.detailRow}>
-                  <View style={baseStyles.detailItem}>
-                    <Text style={baseStyles.label}>Maturity Amount</Text>
-                    <Text style={baseStyles.value}>{formatCurrency(transaction.maturityAmount)}</Text>
-                  </View>
-                </View>
-
-                {transaction.description && (
-                  <View style={baseStyles.descriptionContainer}>
-                    <Text style={baseStyles.label}>Notes</Text>
-                    <Text style={baseStyles.description}>{transaction.description}</Text>
-                  </View>
-                )}
-              </Surface>
-            </View>
+              </View>
+            </>
           )}
         </Card.Content>
       </TouchableOpacity>
@@ -99,6 +84,12 @@ const FixedDepositScreen = ({ route, navigation }) => {
   const [transactions, setTransactions] = useState([]);
   const [visible, setVisible] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [portfolioSummary, setPortfolioSummary] = useState({
+    totalInvestment: 0,
+    totalMaturityAmount: 0,
+    totalGain: 0,
+    gainPercentage: 0
+  });
   const [newTransaction, setNewTransaction] = useState({
     name: '',
     amount: '',
@@ -119,12 +110,39 @@ const FixedDepositScreen = ({ route, navigation }) => {
       if (data) {
         const parsedTransactions = JSON.parse(data);
         setTransactions(parsedTransactions);
+        
+        // Calculate portfolio summary
+        const summary = parsedTransactions.reduce((acc, transaction) => {
+          acc.totalInvestment += transaction.amount;
+          acc.totalMaturityAmount += transaction.maturityAmount;
+          return acc;
+        }, {
+          totalInvestment: 0,
+          totalMaturityAmount: 0
+        });
+
+        summary.totalGain = summary.totalMaturityAmount - summary.totalInvestment;
+        summary.gainPercentage = (summary.totalGain / summary.totalInvestment) * 100; // Keep decimal places for percentage
+
+        setPortfolioSummary(summary);
       } else {
         setTransactions([]);
+        setPortfolioSummary({
+          totalInvestment: 0,
+          totalMaturityAmount: 0,
+          totalGain: 0,
+          gainPercentage: 0
+        });
       }
     } catch (error) {
       console.error('Error loading transactions:', error);
       setTransactions([]);
+      setPortfolioSummary({
+        totalInvestment: 0,
+        totalMaturityAmount: 0,
+        totalGain: 0,
+        gainPercentage: 0
+      });
     }
   };
 
@@ -153,7 +171,7 @@ const FixedDepositScreen = ({ route, navigation }) => {
   const calculateMaturityAmount = (amount, duration, roi) => {
     const rate = roi / 100;
     const maturityAmount = amount * (1 + (rate * duration / 12));
-    return Math.round(maturityAmount * 100) / 100;
+    return Math.round(maturityAmount);
   };
 
   const saveTransaction = async () => {
@@ -263,16 +281,60 @@ const FixedDepositScreen = ({ route, navigation }) => {
     ...dynamicStyles
   };
 
+  const renderSummaryCard = () => (
+    <Surface style={styles.summaryCard}>
+      <Text style={styles.summaryTitle}>Portfolio Summary</Text>
+      <View style={styles.summaryRow}>
+        <View style={styles.summaryItem}>
+          <Text style={styles.summaryLabel}>Total Investment</Text>
+          <Text style={styles.summaryValue}>
+            {formatCurrency(Math.round(portfolioSummary.totalInvestment), 0)}
+          </Text>
+        </View>
+        <View style={styles.summaryItem}>
+          <Text style={styles.summaryLabel}>Maturity Amount</Text>
+          <Text style={styles.summaryValue}>
+            {formatCurrency(Math.round(portfolioSummary.totalMaturityAmount), 0)}
+          </Text>
+        </View>
+      </View>
+      <Divider style={styles.divider} />
+      <View style={styles.summaryRow}>
+        <View style={styles.summaryItem}>
+          <Text style={styles.summaryLabel}>Total Gain</Text>
+          <Text style={[
+            styles.summaryValue,
+            { color: portfolioSummary.totalGain >= 0 ? '#4CAF50' : '#F44336' }
+          ]}>
+            {formatCurrency(Math.round(portfolioSummary.totalGain), 0)}
+          </Text>
+        </View>
+        <View style={styles.summaryItem}>
+          <Text style={styles.summaryLabel}>Returns</Text>
+          <Text style={[
+            styles.summaryValue,
+            { color: portfolioSummary.gainPercentage >= 0 ? '#4CAF50' : '#F44336' }
+          ]}>
+            {portfolioSummary.gainPercentage.toFixed(2)}%
+          </Text>
+        </View>
+      </View>
+    </Surface>
+  );
+
   return (
     <View style={styles.container}>
       <ScrollView style={styles.scrollView}>
         {transactions && transactions.length > 0 ? (
-          transactions.map((transaction) => (
-            <TransactionCard 
-              key={transaction.id} 
-              transaction={transaction}
-            />
-          ))
+          <>
+            {renderSummaryCard()}
+            {transactions.map((transaction) => (
+              <TransactionCard 
+                key={transaction.id} 
+                transaction={transaction}
+              />
+            ))}
+          </>
         ) : (
           <View style={styles.emptyState}>
             <Text style={styles.emptyStateText}>No transactions yet</Text>
@@ -484,7 +546,6 @@ const FixedDepositScreen = ({ route, navigation }) => {
                 mode="date"
                 display="spinner"
                 onChange={handleDateChange}
-                minimumDate={new Date()}
                 style={styles.iosDatePicker}
               />
             </Dialog.Content>
@@ -500,7 +561,6 @@ const FixedDepositScreen = ({ route, navigation }) => {
             mode="date"
             display="default"
             onChange={handleDateChange}
-            minimumDate={new Date()}
           />
         )}
       </Portal>
@@ -706,14 +766,6 @@ const baseStyles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
   },
-  expandedContent: {
-    marginTop: 16,
-  },
-  divider: {
-    backgroundColor: '#eee',
-    height: 1,
-    marginBottom: 16,
-  },
   detailsContainer: {
     backgroundColor: '#f8f8f8',
     padding: 16,
@@ -728,26 +780,48 @@ const baseStyles = StyleSheet.create({
     flex: 1,
     marginRight: 16,
   },
-  label: {
+  detailLabel: {
     fontSize: 12,
     color: '#666',
     marginBottom: 4,
   },
-  value: {
+  detailValue: {
     fontSize: 14,
     color: '#1a1a1a',
     fontWeight: '500',
   },
-  descriptionContainer: {
-    marginTop: 8,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
+  summaryCard: {
+    padding: 16,
+    marginBottom: 16,
+    borderRadius: 12,
+    backgroundColor: '#fff',
   },
-  description: {
-    fontSize: 14,
-    color: '#444',
-    fontStyle: 'italic',
+  summaryTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 16,
+    color: '#1a1a1a',
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  summaryItem: {
+    flex: 1,
+  },
+  summaryLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4,
+  },
+  summaryValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1a1a1a',
+  },
+  divider: {
+    marginVertical: 12,
   },
 });
 

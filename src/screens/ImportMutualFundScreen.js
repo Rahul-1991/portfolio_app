@@ -99,7 +99,7 @@ const ImportMutualFundScreen = ({ route, navigation }) => {
   const calculateAmount = () => {
     if (!importData.units || !importData.navPrice) return '';
     const amount = parseFloat(importData.units) * parseFloat(importData.navPrice);
-    return Math.round(amount).toString(); // Round to nearest integer
+    return amount.toFixed(2); // Keep 2 decimal places for currency
   };
 
   const saveTransaction = async () => {
@@ -226,7 +226,16 @@ const ImportMutualFundScreen = ({ route, navigation }) => {
                 <TextInput
                   label="Number of Units"
                   value={importData.units}
-                  onChangeText={(text) => setImportData({ ...importData, units: text })}
+                  onChangeText={(text) => {
+                    const newUnits = text;
+                    setImportData({ 
+                      ...importData, 
+                      units: newUnits,
+                      investmentAmount: newUnits && importData.navPrice ? 
+                        (parseFloat(newUnits) * parseFloat(importData.navPrice)).toFixed(2) : 
+                        importData.investmentAmount
+                    });
+                  }}
                   keyboardType="decimal-pad"
                   style={styles.input}
                   mode="outlined"
@@ -242,10 +251,13 @@ const ImportMutualFundScreen = ({ route, navigation }) => {
                   label="Purchase NAV"
                   value={importData.navPrice}
                   onChangeText={(text) => {
+                    const newNavPrice = text;
                     setImportData({ 
                       ...importData, 
-                      navPrice: text,
-                      investmentAmount: text && importData.units ? calculateAmount() : importData.investmentAmount
+                      navPrice: newNavPrice,
+                      investmentAmount: newNavPrice && importData.units ? 
+                        (parseFloat(importData.units) * parseFloat(newNavPrice)).toFixed(2) : 
+                        importData.investmentAmount
                     });
                   }}
                   keyboardType="decimal-pad"

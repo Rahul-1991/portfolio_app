@@ -27,7 +27,7 @@
       <dict>
         <key>CFBundleURLSchemes</key>
         <array>
-          <string>com.rustyrabbit1991.portfolio</string>
+          <string>com.rustyrabbit1991.portfolio-app</string>
         </array>
       </dict>
       <dict>

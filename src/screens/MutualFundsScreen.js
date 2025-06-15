@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { Button, Card, Divider, FAB, Surface, Text, useTheme } from 'react-native-paper';
+import { Card, Divider, FAB, Surface, Text, useTheme } from 'react-native-paper';
 import { formatCurrency } from '../constants/investments';
 import { mutualFundsAPI } from '../services/mutualFundsAPI';
 
@@ -288,22 +288,6 @@ const MutualFundsScreen = ({ navigation }) => {
           {investments.length > 0 ? (
             <>
               {renderSummaryCard()}
-              <View style={styles.actionButtons}>
-                <Button
-                  mode="contained"
-                  onPress={() => navigation.navigate('AddMutualFund', { investmentId: 'mf' })}
-                  style={[styles.actionButton, { marginRight: 8 }]}
-                >
-                  Add New Investment
-                </Button>
-                <Button
-                  mode="outlined"
-                  onPress={() => navigation.navigate('ImportMutualFund', { investmentId: 'mf' })}
-                  style={styles.actionButton}
-                >
-                  Import Existing
-                </Button>
-              </View>
               {investments.map(renderInvestmentCard)}
             </>
           ) : (
@@ -311,22 +295,6 @@ const MutualFundsScreen = ({ navigation }) => {
               <Text style={styles.emptyStateText}>
                 No mutual fund investments yet
               </Text>
-              <View style={styles.actionButtons}>
-                <Button
-                  mode="contained"
-                  onPress={() => navigation.navigate('AddMutualFund', { investmentId: 'mf' })}
-                  style={[styles.actionButton, { marginRight: 8 }]}
-                >
-                  Add New Investment
-                </Button>
-                <Button
-                  mode="outlined"
-                  onPress={() => navigation.navigate('ImportMutualFund', { investmentId: 'mf' })}
-                  style={styles.actionButton}
-                >
-                  Import Existing
-                </Button>
-              </View>
             </Surface>
           )}
         </View>
@@ -335,7 +303,7 @@ const MutualFundsScreen = ({ navigation }) => {
       <FAB
         style={[styles.fab, { backgroundColor: theme.colors.primary }]}
         icon="plus"
-        onPress={() => navigation.navigate('AddMutualFund', { investmentId: 'mf' })}
+        onPress={() => navigation.navigate('ImportMutualFund', { investmentId: 'mf' })}
       />
     </View>
   );

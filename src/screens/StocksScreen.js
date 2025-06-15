@@ -1,11 +1,13 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Card, Chip, Divider, FAB, Surface, useTheme } from 'react-native-paper';
 import { formatCurrency } from '../constants/investments';
 import { stocksAPI } from '../services/stocksAPI';
 
-const TransactionCard = ({ transaction }) => {
+const TransactionCard = ({ transaction, onDelete }) => {
   const [expanded, setExpanded] = useState(false);
   const [currentData, setCurrentData] = useState(null);
 
@@ -137,6 +139,13 @@ const TransactionCard = ({ transaction }) => {
                     <Text style={baseStyles.description}>{transaction.description}</Text>
                   </View>
                 )}
+
+                <TouchableOpacity 
+                  style={baseStyles.deleteButton}
+                  onPress={() => onDelete(transaction)}
+                >
+                  <MaterialCommunityIcons name="trash-can-outline" size={20} color="#F44336" />
+                </TouchableOpacity>
               </Surface>
             </View>
           )}
@@ -196,9 +205,11 @@ const StocksScreen = ({ route, navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [sortBy, setSortBy] = useState('name'); // 'name', 'pl', 'value'
 
-  useEffect(() => {
-    loadTransactions();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadTransactions();
+    }, [])
+  );
 
   useEffect(() => {
     if (transactions.length > 0) {
@@ -264,6 +275,55 @@ const StocksScreen = ({ route, navigation }) => {
     return currentValue - investedValue;
   };
 
+  const handleDeleteTransaction = async (transaction) => {
+    Alert.alert(
+      'Delete Transaction',
+      `Are you sure you want to delete ${transaction.name} transaction?`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel'
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Remove transaction from the list
+              const updatedTransactions = transactions.filter(t => t.id !== transaction.id);
+              await AsyncStorage.setItem(
+                `transactions_${investmentId}`,
+                JSON.stringify(updatedTransactions)
+              );
+
+              // Update portfolio data
+              const existingPortfolioData = await AsyncStorage.getItem('portfolioData');
+              let portfolioData = JSON.parse(existingPortfolioData);
+
+              // Subtract the investment amount
+              const investmentAmount = transaction.quantity * transaction.averagePrice;
+              portfolioData.investments[investmentId].total -= investmentAmount;
+              portfolioData.investments[investmentId].count -= 1;
+              portfolioData.totalInvestment -= investmentAmount;
+
+              await AsyncStorage.setItem('portfolioData', JSON.stringify(portfolioData));
+
+              // Update state
+              setTransactions(updatedTransactions);
+            } catch (error) {
+              console.error('Error deleting transaction:', error);
+              Alert.alert(
+                'Error',
+                'Failed to delete the transaction. Please try again.',
+                [{ text: 'OK' }]
+              );
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const dynamicStyles = StyleSheet.create({
     fab: {
       position: 'absolute',
@@ -323,6 +383,7 @@ const StocksScreen = ({ route, navigation }) => {
               <TransactionCard 
                 key={transaction.id} 
                 transaction={transaction}
+                onDelete={handleDeleteTransaction}
               />
             ))}
           </>
@@ -490,6 +551,14 @@ const baseStyles = StyleSheet.create({
   emptyStateText: {
     fontSize: 16,
     color: '#666',
+  },
+  deleteButton: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(244, 67, 54, 0.1)',
   },
 });
 

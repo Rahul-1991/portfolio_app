@@ -14,10 +14,6 @@
     "assetBundlePatterns": [
       "**/*"
     ],
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.rustyrabbit1991.portfolio"
-    },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -42,6 +38,9 @@
     "runtimeVersion": "1.0.0",
     "updates": {
       "url": "https://u.expo.dev/3cc3c743-7f90-45ef-b810-a1405926c925"
+    },
+    "ios": {
+      "bundleIdentifier": "com.rustyrabbit1991.portfolio-app"
     }
   }
 }

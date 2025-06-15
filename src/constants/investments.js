@@ -30,14 +30,14 @@ export const INVESTMENT_TYPES = {
   },
 };
 
-export const formatCurrency = (amount) => {
+export const formatCurrency = (amount, decimals = 2) => {
   if (!amount && amount !== 0) return '₹0';
   
   const formatter = new Intl.NumberFormat('en-IN', {
     style: 'currency',
     currency: 'INR',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals
   });
   
   return formatter.format(amount);
