@@ -4,7 +4,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Card, Chip, Divider, FAB, Surface, useTheme } from 'react-native-paper';
-import { formatCurrency } from '../constants/investments';
+import { formatCurrencyNoDecimals } from '../constants/investments';
 import { stocksAPI } from '../services/stocksAPI';
 
 const TransactionCard = ({ transaction, onDelete }) => {
@@ -43,113 +43,123 @@ const TransactionCard = ({ transaction, onDelete }) => {
     const plAmount = currentValue - investedValue;
     const plPercentage = (plAmount / investedValue) * 100;
     return {
-      amount: plAmount.toFixed(2),
-      percentage: plPercentage.toFixed(2)
+      amount: plAmount,
+      percentage: plPercentage
     };
   };
 
   const pl = calculatePL();
+  const totalInvestment = transaction.quantity * transaction.averagePrice;
+  const currentValue = currentData ? currentData.currentPrice * transaction.quantity : totalInvestment;
+  const dayChangeAmount = currentData && currentData.change ? transaction.quantity * parseFloat(currentData.change) : 0;
+  const hasValidData = currentData && currentData.change && !isNaN(parseFloat(currentData.change));
 
   return (
-    <Card style={baseStyles.card}>
-      <TouchableOpacity 
+    <Card style={baseStyles.investmentCard}>
+      <TouchableOpacity
         onPress={() => setExpanded(!expanded)}
         activeOpacity={0.7}
-        style={baseStyles.touchable}
       >
-        <Card.Content style={baseStyles.cardContent}>
-          <View style={baseStyles.headerContainer}>
-            <View style={baseStyles.headerLeft}>
-              <Text style={baseStyles.title}>{transaction.name}</Text>
-              <Text style={baseStyles.subtitle}>{transaction.symbol}</Text>
+        <View style={baseStyles.cardContainer}>
+          {/* Top Row: Logo + (Stock Name + Day Change) */}
+          <View style={baseStyles.topRowContainer}>
+            <View style={baseStyles.logoContainer}>
+              <View style={baseStyles.logoCircle}>
+                <Text style={baseStyles.logoText}>
+                  {transaction.name ? transaction.name.charAt(0) : '?'}
+                </Text>
+              </View>
             </View>
-            <View style={baseStyles.headerRight}>
-              {currentData && (
-                <>
-                  <Text style={baseStyles.price}>{formatCurrency(currentData.currentPrice)}</Text>
-                  <Text style={[
-                    baseStyles.change,
-                    { color: currentData.change >= 0 ? '#4CAF50' : '#F44336' }
-                  ]}>
-                    {currentData.change >= 0 ? '↑' : '↓'} {Math.abs(currentData.change)}
-                    ({Math.abs(currentData.changePercent)}%)
+            <View style={baseStyles.cardContent}>
+              <View style={baseStyles.topRow}>
+                <Text style={baseStyles.stockName}>{transaction.name}</Text>
+                <View style={baseStyles.dayChangeContainer}>
+                  <Text style={baseStyles.dayChangeLabel}>1D change</Text>
+                  <Text style={baseStyles.dayChangeAmount}>
+                    {hasValidData ? formatCurrencyNoDecimals(dayChangeAmount).replace(/\s(?=\d)/, '') : 'N/A'}
                   </Text>
-                </>
-              )}
+                  <Text> </Text>
+                  <Text style={[
+                    baseStyles.dayChangePercent,
+                    { color: hasValidData ? (parseFloat(currentData.change) >= 0 ? '#4CAF50' : '#F44336') : '#888' }
+                  ]}>
+                    {hasValidData ? (parseFloat(currentData.change) >= 0 ? '+' : '') + (currentData.changePercent || '0.00') + '%' : 'N/A'}
+                  </Text>
+                  <Text style={[
+                    baseStyles.dayChangeArrow,
+                    { color: hasValidData ? (parseFloat(currentData.change) >= 0 ? '#4CAF50' : '#F44336') : '#888' }
+                  ]}>
+                    {hasValidData ? (parseFloat(currentData.change) >= 0 ? '▲' : '▼') : ''}
+                  </Text>
+                </View>
+              </View>
+            </View>
+            <TouchableOpacity 
+              style={baseStyles.deleteButton}
+              onPress={() => onDelete(transaction)}
+            >
+              <MaterialCommunityIcons name="trash-can-outline" size={20} color="#F44336" />
+            </TouchableOpacity>
+          </View>
+          {/* Label Row: Invested, Current Value, Gain/Loss (full width, left aligned) */}
+          <View style={baseStyles.labelRow}>
+            <View style={baseStyles.labelColumn}>
+              <Text style={baseStyles.label}>Invested</Text>
+            </View>
+            <View style={baseStyles.labelColumn}>
+              <Text style={baseStyles.label}>Current Value</Text>
+            </View>
+            <View style={baseStyles.labelColumn}>
+              <Text style={baseStyles.label}>Gain/ Loss</Text>
             </View>
           </View>
-
+          {/* Value Row: Invested, Current Value, Gain/Loss (full width, left aligned) */}
+          <View style={baseStyles.bottomRow}>
+            <View style={baseStyles.column}>
+              <Text style={baseStyles.value}>{formatCurrencyNoDecimals(totalInvestment)}</Text>
+            </View>
+            <View style={baseStyles.column}>
+              <Text style={baseStyles.currentValue}>{formatCurrencyNoDecimals(currentValue)}</Text>
+            </View>
+            <View style={baseStyles.column}>
+              <Text style={[
+                baseStyles.value,
+                { color: pl.amount >= 0 ? '#4CAF50' : '#F44336' }
+              ]}>
+                {formatCurrencyNoDecimals(pl.amount)} {pl.percentage >= 0 ? '+' : ''}{pl.percentage?.toFixed(2)}%
+              </Text>
+            </View>
+          </View>
+          {/* Expanded details below the new card design */}
           {expanded && (
-            <View style={baseStyles.expandedContent}>
-              <Divider style={baseStyles.divider} />
-              <Surface style={baseStyles.detailsContainer}>
-                <View style={baseStyles.detailRow}>
-                  <View style={baseStyles.detailItem}>
+            <View style={baseStyles.expandedDetailsContainer}>
+              <View style={baseStyles.investmentDetails}>
+                <View style={baseStyles.bottomRow}>
+                  <View style={baseStyles.column}>
                     <Text style={baseStyles.label}>Quantity</Text>
                     <Text style={baseStyles.value}>{transaction.quantity}</Text>
                   </View>
-                  <View style={baseStyles.detailItem}>
-                    <Text style={baseStyles.label}>Avg. Buy Price</Text>
-                    <Text style={baseStyles.value}>{formatCurrency(transaction.averagePrice)}</Text>
+                  <View style={baseStyles.column}>
+                    <Text style={baseStyles.label}>Avg. Price</Text>
+                    <Text style={baseStyles.value}>{formatCurrencyNoDecimals(transaction.averagePrice)}</Text>
                   </View>
-                </View>
-
-                <View style={baseStyles.detailRow}>
-                  <View style={baseStyles.detailItem}>
-                    <Text style={baseStyles.label}>Total Investment</Text>
+                  <View style={baseStyles.column}>
+                    <Text style={baseStyles.label}>Current Price</Text>
                     <Text style={baseStyles.value}>
-                      {formatCurrency(transaction.quantity * transaction.averagePrice)}
-                    </Text>
-                  </View>
-                  <View style={baseStyles.detailItem}>
-                    <Text style={baseStyles.label}>Current Value</Text>
-                    <Text style={baseStyles.value}>
-                      {currentData ? formatCurrency(currentData.currentPrice * transaction.quantity) : '-'}
+                      {currentData ? formatCurrencyNoDecimals(currentData.currentPrice) : '-'}
                     </Text>
                   </View>
                 </View>
-
-                <View style={baseStyles.detailRow}>
-                  <View style={baseStyles.detailItem}>
-                    <Text style={baseStyles.label}>Profit/Loss</Text>
-                    <Text style={[
-                      baseStyles.value,
-                      { color: pl.amount >= 0 ? '#4CAF50' : '#F44336' }
-                    ]}>
-                      {formatCurrency(Math.abs(pl.amount))} ({Math.abs(pl.percentage)}%)
-                      {pl.amount >= 0 ? ' Profit' : ' Loss'}
-                    </Text>
-                  </View>
-                </View>
-
-                {currentData && (
-                  <View style={baseStyles.detailRow}>
-                    <View style={baseStyles.detailItem}>
-                      <Text style={baseStyles.label}>Day's Range</Text>
-                      <Text style={baseStyles.value}>
-                        {formatCurrency(currentData.dayLow)} - {formatCurrency(currentData.dayHigh)}
-                      </Text>
-                    </View>
-                  </View>
-                )}
-
                 {transaction.description && (
                   <View style={baseStyles.descriptionContainer}>
                     <Text style={baseStyles.label}>Notes</Text>
                     <Text style={baseStyles.description}>{transaction.description}</Text>
                   </View>
                 )}
-
-                <TouchableOpacity 
-                  style={baseStyles.deleteButton}
-                  onPress={() => onDelete(transaction)}
-                >
-                  <MaterialCommunityIcons name="trash-can-outline" size={20} color="#F44336" />
-                </TouchableOpacity>
-              </Surface>
+              </View>
             </View>
           )}
-        </Card.Content>
+        </View>
       </TouchableOpacity>
     </Card>
   );
@@ -163,34 +173,40 @@ const PortfolioSummary = ({ transactions, stocksData }) => {
   }, 0);
   
   const totalPL = currentValue - totalInvestment;
-  const plPercentage = ((totalPL / totalInvestment) * 100).toFixed(2);
+  const plPercentage = ((totalPL / totalInvestment) * 100);
 
   return (
-    <Surface style={baseStyles.summaryContainer}>
+    <Surface style={baseStyles.summaryCard}>
       <Text style={baseStyles.summaryTitle}>Portfolio Summary</Text>
-      <View style={baseStyles.summaryContent}>
-        <View style={baseStyles.summaryRow}>
-          <View style={baseStyles.summaryItem}>
-            <Text style={baseStyles.summaryLabel}>Total Investment</Text>
-            <Text style={baseStyles.summaryValue}>{formatCurrency(totalInvestment)}</Text>
-          </View>
-          <View style={baseStyles.summaryItem}>
-            <Text style={baseStyles.summaryLabel}>Current Value</Text>
-            <Text style={baseStyles.summaryValue}>{formatCurrency(currentValue)}</Text>
-          </View>
+      <View style={baseStyles.summaryRow}>
+        <View style={baseStyles.summaryItem}>
+          <Text style={baseStyles.summaryLabel}>Total Investment</Text>
+          <Text style={baseStyles.summaryValue}>{formatCurrencyNoDecimals(totalInvestment)}</Text>
         </View>
-        <View style={baseStyles.summaryRow}>
-          <View style={baseStyles.summaryItem}>
-            <Text style={baseStyles.summaryLabel}>Overall Returns</Text>
-            <Text style={[
-              baseStyles.summaryValue,
-              { color: totalPL >= 0 ? '#4CAF50' : '#F44336' }
-            ]}>
-              {formatCurrency(Math.abs(totalPL))}
-              {' '}({Math.abs(plPercentage)}%)
-              {totalPL >= 0 ? ' Profit' : ' Loss'}
-            </Text>
-          </View>
+        <View style={baseStyles.summaryItem}>
+          <Text style={baseStyles.summaryLabel}>Current Value</Text>
+          <Text style={baseStyles.summaryValue}>{formatCurrencyNoDecimals(currentValue)}</Text>
+        </View>
+      </View>
+      <Divider style={baseStyles.divider} />
+      <View style={baseStyles.summaryRow}>
+        <View style={baseStyles.summaryItem}>
+          <Text style={baseStyles.summaryLabel}>Total Gain/Loss</Text>
+          <Text style={[
+            baseStyles.summaryValue,
+            { color: totalPL >= 0 ? '#4CAF50' : '#F44336' }
+          ]}>
+            {formatCurrencyNoDecimals(totalPL)}
+          </Text>
+        </View>
+        <View style={baseStyles.summaryItem}>
+          <Text style={baseStyles.summaryLabel}>Returns</Text>
+          <Text style={[
+            baseStyles.summaryValue,
+            { color: plPercentage >= 0 ? '#4CAF50' : '#F44336' }
+          ]}>
+            {plPercentage.toFixed(2)}%
+          </Text>
         </View>
       </View>
     </Surface>
@@ -349,49 +365,51 @@ const StocksScreen = ({ route, navigation }) => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {transactions.length > 0 ? (
-          <>
-            <PortfolioSummary transactions={transactions} stocksData={stocksData} />
-            
-            <View style={styles.sortContainer}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <Chip
-                  selected={sortBy === 'name'}
-                  onPress={() => setSortBy('name')}
-                  style={styles.sortChip}
-                >
-                  Sort by Name
-                </Chip>
-                <Chip
-                  selected={sortBy === 'pl'}
-                  onPress={() => setSortBy('pl')}
-                  style={styles.sortChip}
-                >
-                  Sort by P/L
-                </Chip>
-                <Chip
-                  selected={sortBy === 'value'}
-                  onPress={() => setSortBy('value')}
-                  style={styles.sortChip}
-                >
-                  Sort by Value
-                </Chip>
-              </ScrollView>
-            </View>
+        <View style={styles.content}>
+          {transactions.length > 0 ? (
+            <>
+              <PortfolioSummary transactions={transactions} stocksData={stocksData} />
+              
+              <View style={styles.sortContainer}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <Chip
+                    selected={sortBy === 'name'}
+                    onPress={() => setSortBy('name')}
+                    style={styles.sortChip}
+                  >
+                    Sort by Name
+                  </Chip>
+                  <Chip
+                    selected={sortBy === 'pl'}
+                    onPress={() => setSortBy('pl')}
+                    style={styles.sortChip}
+                  >
+                    Sort by P/L
+                  </Chip>
+                  <Chip
+                    selected={sortBy === 'value'}
+                    onPress={() => setSortBy('value')}
+                    style={styles.sortChip}
+                  >
+                    Sort by Value
+                  </Chip>
+                </ScrollView>
+              </View>
 
-            {getSortedTransactions().map((transaction) => (
-              <TransactionCard 
-                key={transaction.id} 
-                transaction={transaction}
-                onDelete={handleDeleteTransaction}
-              />
-            ))}
-          </>
-        ) : (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyStateText}>No stocks added yet</Text>
-          </View>
-        )}
+              {getSortedTransactions().map((transaction) => (
+                <TransactionCard 
+                  key={transaction.id} 
+                  transaction={transaction}
+                  onDelete={handleDeleteTransaction}
+                />
+              ))}
+            </>
+          ) : (
+            <Surface style={styles.emptyState}>
+              <Text style={styles.emptyStateText}>No stocks added yet</Text>
+            </Surface>
+          )}
+        </View>
       </ScrollView>
 
       <FAB
@@ -410,86 +428,146 @@ const baseStyles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  content: {
     padding: 16,
   },
-  card: {
-    marginBottom: 16,
-    borderRadius: 12,
-    elevation: 2,
+  investmentCard: {
     backgroundColor: '#fff',
-    overflow: 'hidden',
+    borderRadius: 16,
+    marginBottom: 16,
+    padding: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  touchable: {
-    width: '100%',
+  cardContainer: {
+    padding: 16,
   },
-  cardContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  headerContainer: {
+  topRowContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'flex-start',
     width: '100%',
+    position: 'relative',
   },
-  headerLeft: {
+  logoContainer: {
+    marginRight: 12,
+  },
+  logoCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#D32F2F',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 22,
+  },
+  cardContent: {
     flex: 1,
-    paddingRight: 16,
+    width: '100%',
+    paddingRight: 40, // Add padding to prevent overlap with delete button
   },
-  headerRight: {
-    alignItems: 'flex-end',
+  topRow: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    marginBottom: 10,
+    flexWrap: 'wrap',
   },
-  title: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1a1a1a',
-    marginBottom: 2,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#666',
-  },
-  price: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1a1a1a',
-    marginBottom: 2,
-  },
-  change: {
-    fontSize: 14,
+  stockName: {
+    color: '#23272F',
     fontWeight: '500',
+    fontSize: 14,
+    width: '100%',
+    marginRight: 0,
+    lineHeight: 18,
+    flexWrap: 'wrap',
   },
-  expandedContent: {
-    marginTop: 16,
+  dayChangeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
   },
-  divider: {
-    backgroundColor: '#eee',
-    height: 1,
-    marginBottom: 16,
+  dayChangeLabel: {
+    color: '#888',
+    fontSize: 11,
+    fontWeight: '500',
+    marginRight: 4,
   },
-  detailsContainer: {
-    backgroundColor: '#f8f8f8',
-    padding: 16,
-    borderRadius: 8,
+  dayChangeAmount: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#23272F',
+    marginRight: 2,
   },
-  detailRow: {
+  dayChangePercent: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginRight: 2,
+  },
+  dayChangeArrow: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  labelRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 16,
-    gap: 16,
+    alignItems: 'center',
+    paddingHorizontal: 0,
+    marginTop: 8,
+    marginBottom: 0,
   },
-  detailItem: {
+  labelColumn: {
+    alignItems: 'center',
     flex: 1,
+    minWidth: 0,
+  },
+  bottomRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 2,
+    paddingHorizontal: 0,
+    gap: 0,
+  },
+  column: {
+    alignItems: 'center',
+    flex: 1,
+    minWidth: 0,
   },
   label: {
+    color: '#888',
     fontSize: 12,
-    color: '#666',
-    marginBottom: 4,
+    fontWeight: '500',
+    marginBottom: 2,
   },
   value: {
-    fontSize: 14,
-    color: '#1a1a1a',
-    fontWeight: '500',
+    color: '#23272F',
+    fontWeight: '400',
+    fontSize: 13,
+  },
+  currentValue: {
+    color: '#23272F',
+    fontWeight: '400',
+    fontSize: 13,
+  },
+  expandedDetailsContainer: {
+    paddingHorizontal: 0,
+    paddingBottom: 12,
+    backgroundColor: '#fff',
+    marginTop: 8,
+  },
+  investmentDetails: {
+    backgroundColor: 'transparent',
+    borderRadius: 0,
+    paddingTop: 0,
+    paddingBottom: 0,
+    paddingHorizontal: 0,
   },
   descriptionContainer: {
     marginTop: 8,
@@ -502,9 +580,9 @@ const baseStyles = StyleSheet.create({
     color: '#444',
     fontStyle: 'italic',
   },
-  summaryContainer: {
-    marginBottom: 16,
+  summaryCard: {
     padding: 16,
+    marginBottom: 16,
     borderRadius: 12,
     backgroundColor: '#fff',
   },
@@ -514,19 +592,16 @@ const baseStyles = StyleSheet.create({
     marginBottom: 16,
     color: '#1a1a1a',
   },
-  summaryContent: {
-    gap: 12,
-  },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 12,
+    marginBottom: 8,
   },
   summaryItem: {
     flex: 1,
   },
   summaryLabel: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#666',
     marginBottom: 4,
   },
@@ -534,6 +609,9 @@ const baseStyles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#1a1a1a',
+  },
+  divider: {
+    marginVertical: 12,
   },
   sortContainer: {
     marginBottom: 16,
@@ -543,19 +621,22 @@ const baseStyles = StyleSheet.create({
     marginHorizontal: 4,
   },
   emptyState: {
-    flex: 1,
-    justifyContent: 'center',
+    padding: 24,
     alignItems: 'center',
-    paddingVertical: 32,
+    justifyContent: 'center',
+    borderRadius: 12,
+    backgroundColor: '#fff',
   },
   emptyStateText: {
     fontSize: 16,
     color: '#666',
+    marginBottom: 16,
+    textAlign: 'center',
   },
   deleteButton: {
     position: 'absolute',
-    bottom: 8,
-    right: 8,
+    top: 0,
+    right: 0,
     padding: 8,
     borderRadius: 20,
     backgroundColor: 'rgba(244, 67, 54, 0.1)',
