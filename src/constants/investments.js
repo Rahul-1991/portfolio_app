@@ -43,6 +43,17 @@ export const formatCurrency = (amount, decimals = 2) => {
   return formatter.format(amount);
 };
 
+export const formatCurrencyNoDecimals = (amount) => {
+  if (!amount && amount !== 0) return '₹0';
+  const formatter = new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  });
+  return formatter.format(Math.trunc(amount));
+};
+
 export const SIP_FREQUENCIES = {
   MONTHLY: 'Monthly',
   QUARTERLY: 'Quarterly',

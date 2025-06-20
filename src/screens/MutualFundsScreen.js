@@ -3,7 +3,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Card, Divider, FAB, Surface, Text, useTheme } from 'react-native-paper';
-import { formatCurrency } from '../constants/investments';
+import { formatCurrencyNoDecimals } from '../constants/investments';
 import { mutualFundsAPI } from '../services/mutualFundsAPI';
 
 const MutualFundsScreen = ({ navigation }) => {
@@ -116,13 +116,13 @@ const MutualFundsScreen = ({ navigation }) => {
         <View style={styles.summaryItem}>
           <Text style={styles.summaryLabel}>Total Investment</Text>
           <Text style={styles.summaryValue}>
-            {formatCurrency(portfolioSummary.totalInvestment)}
+            {formatCurrencyNoDecimals(portfolioSummary.totalInvestment)}
           </Text>
         </View>
         <View style={styles.summaryItem}>
           <Text style={styles.summaryLabel}>Current Value</Text>
           <Text style={styles.summaryValue}>
-            {formatCurrency(portfolioSummary.currentValue)}
+            {formatCurrencyNoDecimals(portfolioSummary.currentValue)}
           </Text>
         </View>
       </View>
@@ -134,7 +134,7 @@ const MutualFundsScreen = ({ navigation }) => {
             styles.summaryValue,
             { color: portfolioSummary.totalGain >= 0 ? '#4CAF50' : '#F44336' }
           ]}>
-            {formatCurrency(portfolioSummary.totalGain)}
+            {formatCurrencyNoDecimals(portfolioSummary.totalGain)}
           </Text>
         </View>
         <View style={styles.summaryItem}>
@@ -153,6 +153,22 @@ const MutualFundsScreen = ({ navigation }) => {
   const renderInvestmentCard = (investment) => {
     const isExpanded = expandedCard === investment.schemeCode;
 
+    // Handle fund name display logic
+    let fundNameDisplay;
+    if (investment.schemeName && investment.schemeName.length > 39) {
+      fundNameDisplay = (
+        <Text style={[styles.fundName, { fontSize: 14, lineHeight: 18, fontWeight: '500' }]}> 
+          {investment.schemeName.slice(0, 39)}{investment.schemeName.slice(39)}
+        </Text>
+      );
+    } else {
+      fundNameDisplay = (
+        <Text style={[styles.fundName, { fontSize: 14, lineHeight: 18, fontWeight: '500' }]}> 
+          {investment.schemeName}
+        </Text>
+      );
+    }
+
     return (
       <Card 
         key={investment.schemeCode} 
@@ -161,116 +177,97 @@ const MutualFundsScreen = ({ navigation }) => {
         <TouchableOpacity
           onPress={() => setExpandedCard(isExpanded ? null : investment.schemeCode)}
         >
-          <Card.Content>
-            {!isExpanded ? (
-              <View style={styles.collapsedContent}>
-                <View style={styles.leftContent}>
-                  <Text style={styles.schemeName} numberOfLines={2}>
-                    {investment.schemeName}
-                  </Text>
-                  <Text style={styles.fundHouse}>{investment.fundHouse}</Text>
-                </View>
-                <View style={styles.rightContent}>
-                  <Text style={[
-                    styles.currentValue,
-                    { color: investment.currentValue >= investment.totalInvestment ? '#4CAF50' : '#F44336' }
-                  ]}>
-                    {formatCurrency(investment.currentValue)}
-                  </Text>
-                  <Text style={styles.investmentAmount}>
-                    {formatCurrency(investment.totalInvestment)}
+          <View style={styles.cardContainer}>
+            {/* Top Row: Logo + (Fund Name + Day Change) */}
+            <View style={styles.topRowContainer}>
+              <View style={styles.logoContainer}>
+                <View style={styles.logoCircle}>
+                  <Text style={styles.logoText}>
+                    {investment.schemeName ? investment.schemeName.charAt(0) : '?'}
                   </Text>
                 </View>
               </View>
-            ) : (
-              <>
-                <View style={styles.expandedHeader}>
-                  <Text style={styles.expandedSchemeName}>{investment.schemeName}</Text>
-                  <Text style={styles.expandedFundHouse}>{investment.fundHouse}</Text>
+              <View style={styles.cardContent}>
+                <View style={styles.topRow}>
+                  {fundNameDisplay}
+                  <View style={styles.dayChangeContainer}>
+                    <Text style={styles.dayChangeLabel}>1D change</Text>
+                    <Text style={styles.dayChangeAmount}>
+                      {formatCurrencyNoDecimals(investment.dayChangeAmount).replace(/\s(?=\d)/, '')}
+                    </Text>
+                    <Text> </Text>
+                    <Text style={[
+                      styles.dayChangePercent,
+                      { color: investment.dayChangePercentage >= 0 ? '#4CAF50' : '#F44336' }
+                    ]}>
+                      {investment.dayChangePercentage >= 0 ? '+' : ''}{investment.dayChangePercentage?.toFixed(2)}%
+                    </Text>
+                    <Text style={[
+                      styles.dayChangeArrow,
+                      { color: investment.dayChangePercentage >= 0 ? '#4CAF50' : '#F44336' }
+                    ]}>
+                      {investment.dayChangeAmount >= 0 ? '▲' : '▼'}
+                    </Text>
+                  </View>
                 </View>
-                
+              </View>
+            </View>
+            {/* Label Row: Invested, Current Value, Gain/Loss (full width, left aligned) */}
+            <View style={styles.labelRow}>
+              <View style={styles.labelColumn}>
+                <Text style={styles.label}>Invested</Text>
+              </View>
+              <View style={styles.labelColumn}>
+                <Text style={styles.label}>Current Value</Text>
+              </View>
+              <View style={styles.labelColumn}>
+                <Text style={styles.label}>Gain/ Loss</Text>
+              </View>
+            </View>
+            {/* Value Row: Invested, Current Value, Gain/Loss (full width, left aligned) */}
+            <View style={styles.bottomRow}>
+              <View style={styles.column}>
+                <Text style={styles.value}>{formatCurrencyNoDecimals(investment.totalInvestment)}</Text>
+              </View>
+              <View style={styles.column}>
+                <Text style={styles.currentValue}>{formatCurrencyNoDecimals(investment.currentValue)}</Text>
+              </View>
+              <View style={styles.column}>
+                <Text style={[
+                  styles.value,
+                  { color: investment.gain >= 0 ? '#4CAF50' : '#F44336' }
+                ]}>
+                  {formatCurrencyNoDecimals(investment.gain)} {investment.gainPercentage >= 0 ? '+' : ''}{investment.gainPercentage?.toFixed(2)}%
+                </Text>
+              </View>
+            </View>
+            {/* Expanded details below the new card design */}
+            {isExpanded && (
+              <View style={styles.expandedDetailsContainer}>
                 <View style={styles.investmentDetails}>
-                  <View style={styles.detailRow}>
-                    <View style={styles.detailItem}>
-                      <Text style={styles.detailLabel}>Investment</Text>
-                      <Text style={styles.detailValue}>
-                        {formatCurrency(investment.totalInvestment)}
-                      </Text>
+                  <View style={styles.bottomRow}>
+                    <View style={styles.column}>
+                      <Text style={styles.label}>Units</Text>
+                      <Text style={styles.value}>{investment.totalUnits.toFixed(4)}</Text>
                     </View>
-                    <View style={styles.detailItem}>
-                      <Text style={styles.detailLabel}>Current Value</Text>
-                      <Text style={[
-                        styles.detailValue,
-                        { color: investment.currentValue >= investment.totalInvestment ? '#4CAF50' : '#F44336' }
-                      ]}>
-                        {formatCurrency(investment.currentValue)}
-                      </Text>
+                    <View style={styles.column}>
+                      <Text style={styles.label}>NAV</Text>
+                      <Text style={styles.value}>{formatCurrencyNoDecimals(investment.currentNAV)}</Text>
                     </View>
-                  </View>
-
-                  <View style={styles.detailRow}>
-                    <View style={styles.detailItem}>
-                      <Text style={styles.detailLabel}>Units</Text>
-                      <Text style={styles.detailValue}>
-                        {investment.totalUnits.toFixed(4)}
-                      </Text>
-                    </View>
-                    <View style={styles.detailItem}>
-                      <Text style={styles.detailLabel}>NAV</Text>
-                      <Text style={styles.detailValue}>
-                        {formatCurrency(investment.currentNAV)}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.detailRow}>
-                    <View style={styles.detailItem}>
-                      <Text style={styles.detailLabel}>Day Change</Text>
-                      {investment.dayChangeAmount && (
-                        <View style={styles.changeContainer}>
-                          <Text style={[
-                            styles.detailValue,
-                            { color: investment.dayChangeAmount >= 0 ? '#4CAF50' : '#F44336' }
-                          ]}>
-                            {formatCurrency(investment.dayChangeAmount)}
-                          </Text>
-                          <Text style={[
-                            styles.changePercentage,
-                            { color: investment.dayChangeAmount >= 0 ? '#4CAF50' : '#F44336' }
-                          ]}>
-                            ({investment.dayChangePercentage >= 0 ? '+' : ''}{investment.dayChangePercentage.toFixed(2)}%)
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                    <View style={styles.detailItem}>
-                      <Text style={styles.detailLabel}>Overall Returns</Text>
-                      <View style={styles.changeContainer}>
-                        <Text style={[
-                          styles.detailValue,
-                          { color: investment.gainPercentage >= 0 ? '#4CAF50' : '#F44336' }
-                        ]}>
-                          {formatCurrency(investment.gain)}
-                        </Text>
-                        <Text style={[
-                          styles.changePercentage,
-                          { color: investment.gainPercentage >= 0 ? '#4CAF50' : '#F44336' }
-                        ]}>
-                          ({investment.gainPercentage >= 0 ? '+' : ''}{investment.gainPercentage.toFixed(2)}%)
-                        </Text>
-                      </View>
+                    <View style={styles.column}>
+                      <Text style={styles.label}>Last Updated</Text>
+                      <Text style={styles.value}>{investment.lastUpdated}</Text>
                     </View>
                   </View>
                 </View>
-
                 {investment.transactions.some(t => t.isSIP) && (
                   <View style={styles.sipBadge}>
                     <Text style={styles.sipBadgeText}>SIP Active</Text>
                   </View>
                 )}
-              </>
+              </View>
             )}
-          </Card.Content>
+          </View>
         </TouchableOpacity>
       </Card>
     );
@@ -354,69 +351,125 @@ const styles = StyleSheet.create({
     marginVertical: 12,
   },
   investmentCard: {
-    marginBottom: 12,
-    borderRadius: 12,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    marginBottom: 16,
+    padding: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  collapsedContent: {
+  cardContainer: {
+    padding: 16,
+  },
+  topRowContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingVertical: 12,
+    width: '100%',
   },
-  leftContent: {
+  logoContainer: {
+    marginRight: 12,
+  },
+  logoCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#D32F2F',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 22,
+  },
+  cardContent: {
     flex: 1,
-    paddingRight: 16,
+    width: '100%',
   },
-  rightContent: {
-    alignItems: 'flex-end',
+  topRow: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    marginBottom: 10,
+    flexWrap: 'wrap',
   },
-  schemeName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1a1a1a',
-    marginBottom: 2,
-    flexShrink: 1,
-    height: 24,
-  },
-  fundHouse: {
+  fundName: {
+    color: '#23272F',
+    fontWeight: '500',
     fontSize: 14,
-    color: '#666',
-    height: 20,
+    width: '100%',
+    marginRight: 0,
+    lineHeight: 18,
   },
-  currentValue: {
-    fontSize: 16,
+  dayChangeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  dayChangeLabel: {
+    color: '#888',
+    fontSize: 11,
+    fontWeight: '500',
+    marginRight: 4,
+  },
+  dayChangeAmount: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#23272F',
+    marginRight: 2,
+  },
+  dayChangePercent: {
+    fontSize: 12,
     fontWeight: '600',
-    marginBottom: 2,
-    height: 24,
+    marginRight: 2,
   },
-  investmentAmount: {
-    fontSize: 14,
-    color: '#666',
-    height: 20,
+  dayChangeArrow: {
+    fontSize: 12,
+    fontWeight: '600',
   },
-  investmentDetails: {
-    backgroundColor: '#f8f8f8',
-    borderRadius: 8,
-    paddingTop: 0,
-    paddingBottom: 12,
-    paddingHorizontal: 12,
-  },
-  detailRow: {
+  bottomRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    alignItems: 'center',
+    marginTop: 2,
+    paddingHorizontal: 0,
+    gap: 0,
   },
-  detailItem: {
+  column: {
+    alignItems: 'center',
     flex: 1,
+    minWidth: 0,
   },
-  detailLabel: {
+  label: {
+    color: '#888',
     fontSize: 12,
-    color: '#666',
+    fontWeight: '500',
     marginBottom: 2,
   },
-  detailValue: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1a1a1a',
+  value: {
+    color: '#23272F',
+    fontWeight: '400',
+    fontSize: 13,
+  },
+  currentValue: {
+    color: '#23272F',
+    fontWeight: '400',
+    fontSize: 13,
+  },
+  expandedDetailsContainer: {
+    paddingHorizontal: 0,
+    paddingBottom: 12,
+    backgroundColor: '#fff',
+    marginTop: 8,
+  },
+  investmentDetails: {
+    backgroundColor: 'transparent',
+    borderRadius: 0,
+    paddingTop: 0,
+    paddingBottom: 0,
+    paddingHorizontal: 0,
   },
   sipBadge: {
     position: 'absolute',
@@ -459,30 +512,18 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
   },
-  changeContainer: {
+  labelRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    flexWrap: 'nowrap',
-    gap: 4,
+    paddingHorizontal: 0,
+    marginTop: 8,
+    marginBottom: 0,
   },
-  changePercentage: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  expandedHeader: {
-    paddingTop: 12,
-    paddingBottom: 0,
-  },
-  expandedSchemeName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1a1a1a',
-    marginBottom: 4,
-  },
-  expandedFundHouse: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 16,
+  labelColumn: {
+    alignItems: 'center',
+    flex: 1,
+    minWidth: 0,
   },
 });
 
