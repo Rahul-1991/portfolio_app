@@ -122,12 +122,20 @@ const TransactionCard = ({ transaction, onDelete }) => {
               <Text style={baseStyles.currentValue}>{formatCurrencyNoDecimals(currentValue)}</Text>
             </View>
             <View style={baseStyles.column}>
-              <Text style={[
-                baseStyles.value,
-                { color: pl.amount >= 0 ? '#4CAF50' : '#F44336' }
-              ]}>
-                {formatCurrencyNoDecimals(pl.amount)} {pl.percentage >= 0 ? '+' : ''}{pl.percentage?.toFixed(2)}%
-              </Text>
+              <View style={baseStyles.gainLossContainer}>
+                <Text style={[
+                  baseStyles.value,
+                  { color: pl.amount >= 0 ? '#4CAF50' : '#F44336' }
+                ]}>
+                  {formatCurrencyNoDecimals(pl.amount)}
+                </Text>
+                <Text style={[
+                  baseStyles.percentageValue,
+                  { color: pl.amount >= 0 ? '#4CAF50' : '#F44336' }
+                ]}>
+                  {pl.percentage >= 0 ? '+' : ''}{pl.percentage?.toFixed(2)}%
+                </Text>
+              </View>
             </View>
           </View>
           {/* Expanded details below the new card design */}
@@ -640,6 +648,17 @@ const baseStyles = StyleSheet.create({
     padding: 8,
     borderRadius: 20,
     backgroundColor: 'rgba(244, 67, 54, 0.1)',
+  },
+  percentageValue: {
+    fontSize: 10,
+    fontWeight: '400',
+    color: '#23272F',
+    marginLeft: 4,
+  },
+  gainLossContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 

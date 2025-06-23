@@ -1,19 +1,74 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { Button, Card, Paragraph, Surface, Title, useTheme } from 'react-native-paper';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Card, Surface, useTheme } from 'react-native-paper';
 import { INVESTMENT_TYPES, formatCurrency } from '../constants/investments';
+import { mutualFundsAPI } from '../services/mutualFundsAPI';
+import { stocksAPI } from '../services/stocksAPI';
+
+// Function to calculate realistic FD current value
+const calculateFDCurrentValue = (fdTransaction) => {
+  const startDate = new Date(fdTransaction.investedOn);
+  const currentDate = new Date();
+  const maturityDate = new Date(startDate);
+  maturityDate.setMonth(maturityDate.getMonth() + fdTransaction.duration);
+  
+  // If FD has matured, return maturity amount
+  if (currentDate >= maturityDate) {
+    return fdTransaction.maturityAmount;
+  }
+  
+  // If FD is still running, calculate current value based on time elapsed
+  const monthsElapsed = (currentDate - startDate) / (1000 * 60 * 60 * 24 * 30.44); // Approximate months
+  const rate = fdTransaction.roi / 100;
+  
+  // Calculate current value using simple interest (most FDs use simple interest)
+  const currentValue = fdTransaction.amount * (1 + (rate * monthsElapsed / 12));
+  
+  return Math.round(currentValue);
+};
+
+// Function to calculate realistic RD current value
+const calculateRDCurrentValue = (rdTransaction) => {
+  const startDate = new Date(rdTransaction.investedOn);
+  const currentDate = new Date();
+  const maturityDate = new Date(startDate);
+  maturityDate.setMonth(maturityDate.getMonth() + rdTransaction.duration);
+  
+  // If RD has matured, return maturity amount
+  if (currentDate >= maturityDate) {
+    return rdTransaction.maturityAmount;
+  }
+  
+  // Calculate months elapsed since start
+  const monthsElapsed = Math.floor((currentDate - startDate) / (1000 * 60 * 60 * 24 * 30.44));
+  
+  // If less than 1 month, return the monthly deposit amount (principal)
+  if (monthsElapsed < 1) {
+    return rdTransaction.amount;
+  }
+  
+  // Calculate current value using RD formula
+  const monthlyRate = rdTransaction.roi / (12 * 100);
+  const depositsMade = Math.min(monthsElapsed, rdTransaction.duration);
+  const currentValue = rdTransaction.amount * depositsMade * (1 + (depositsMade + 1) * monthlyRate / 2);
+  
+  return Math.round(currentValue);
+};
 
 const DashboardScreen = ({ navigation }) => {
   const [portfolioData, setPortfolioData] = useState({
     totalInvestment: 0,
+    currentValue: 0,
+    totalGain: 0,
+    gainPercentage: 0,
     investments: {
-      rd: { total: 0, count: 0 },
-      fd: { total: 0, count: 0 },
-      stocks: { total: 0, count: 0 },
-      mf: { total: 0, count: 0 },
-      crypto: { total: 0, count: 0 },
+      rd: { total: 0, count: 0, currentValue: 0 },
+      fd: { total: 0, count: 0, currentValue: 0 },
+      stocks: { total: 0, count: 0, currentValue: 0 },
+      mf: { total: 0, count: 0, currentValue: 0 },
+      crypto: { total: 0, count: 0, currentValue: 0 },
     },
   });
 
@@ -31,12 +86,15 @@ const DashboardScreen = ({ navigation }) => {
       ]);
       setPortfolioData({
         totalInvestment: 0,
+        currentValue: 0,
+        totalGain: 0,
+        gainPercentage: 0,
         investments: {
-          rd: { total: 0, count: 0 },
-          fd: { total: 0, count: 0 },
-          stocks: { total: 0, count: 0 },
-          mf: { total: 0, count: 0 },
-          crypto: { total: 0, count: 0 },
+          rd: { total: 0, count: 0, currentValue: 0 },
+          fd: { total: 0, count: 0, currentValue: 0 },
+          stocks: { total: 0, count: 0, currentValue: 0 },
+          mf: { total: 0, count: 0, currentValue: 0 },
+          crypto: { total: 0, count: 0, currentValue: 0 },
         },
       });
     } catch (error) {
@@ -56,55 +114,79 @@ const DashboardScreen = ({ navigation }) => {
       ]);
 
       const investments = {
-        rd: { total: 0, count: 0 },
-        fd: { total: 0, count: 0 },
-        stocks: { total: 0, count: 0 },
-        mf: { total: 0, count: 0 },
-        crypto: { total: 0, count: 0 },
+        rd: { total: 0, count: 0, currentValue: 0 },
+        fd: { total: 0, count: 0, currentValue: 0 },
+        stocks: { total: 0, count: 0, currentValue: 0 },
+        mf: { total: 0, count: 0, currentValue: 0 },
+        crypto: { total: 0, count: 0, currentValue: 0 },
       };
 
       // Calculate RD total
       if (rdData) {
         const rdTransactions = JSON.parse(rdData);
+        const rdTotal = rdTransactions.reduce((sum, t) => sum + (t.amount * t.duration), 0);
+        
+        // Calculate realistic current value for each RD
+        let rdCurrentValue = 0;
+        for (const transaction of rdTransactions) {
+          rdCurrentValue += calculateRDCurrentValue(transaction);
+        }
+        
         investments.rd = {
-          total: rdTransactions.reduce((sum, t) => sum + t.amount, 0),
-          count: rdTransactions.length
+          total: rdTotal,
+          count: rdTransactions.length,
+          currentValue: rdCurrentValue,
         };
       }
 
       // Calculate FD total
       if (fdData) {
         const fdTransactions = JSON.parse(fdData);
+        const fdTotal = fdTransactions.reduce((sum, t) => sum + t.amount, 0);
+        
+        // Calculate realistic current value for each FD
+        let fdCurrentValue = 0;
+        for (const transaction of fdTransactions) {
+          fdCurrentValue += calculateFDCurrentValue(transaction);
+        }
+        
         investments.fd = {
-          total: fdTransactions.reduce((sum, t) => sum + t.amount, 0),
-          count: fdTransactions.length
+          total: fdTotal,
+          count: fdTransactions.length,
+          currentValue: fdCurrentValue,
         };
       }
 
       // Calculate Stocks total
       if (stocksData) {
         const stockTransactions = JSON.parse(stocksData);
+        const stocksTotal = stockTransactions.reduce((sum, t) => sum + t.investmentAmount, 0);
         investments.stocks = {
-          total: stockTransactions.reduce((sum, t) => sum + t.investmentAmount, 0),
-          count: stockTransactions.length
+          total: stocksTotal,
+          count: stockTransactions.length,
+          currentValue: stocksTotal, // Will be updated with real-time data below
         };
       }
 
       // Calculate MF total
       if (mfData) {
         const mfTransactions = JSON.parse(mfData);
+        const mfTotal = mfTransactions.reduce((sum, t) => sum + t.investmentAmount, 0);
         investments.mf = {
-          total: mfTransactions.reduce((sum, t) => sum + t.investmentAmount, 0),
-          count: mfTransactions.length
+          total: mfTotal,
+          count: mfTransactions.length,
+          currentValue: mfTotal, // Will be updated with real-time data below
         };
       }
 
       // Calculate Crypto total
       if (cryptoData) {
         const cryptoTransactions = JSON.parse(cryptoData);
+        const cryptoTotal = cryptoTransactions.reduce((sum, t) => sum + t.investmentAmount, 0);
         investments.crypto = {
-          total: cryptoTransactions.reduce((sum, t) => sum + t.investmentAmount, 0),
-          count: cryptoTransactions.length
+          total: cryptoTotal,
+          count: cryptoTransactions.length,
+          currentValue: cryptoTotal,
         };
       }
 
@@ -113,8 +195,62 @@ const DashboardScreen = ({ navigation }) => {
         0
       );
 
+      // Calculate current values for different investment types
+      let currentValue = 0;
+
+      // Add RD and FD current values
+      currentValue += investments.rd.currentValue;
+      currentValue += investments.fd.currentValue;
+
+      // For Stocks, calculate real current value
+      if (stocksData && investments.stocks.count > 0) {
+        const stockTransactions = JSON.parse(stocksData);
+        let stocksCurrentValue = 0;
+        for (const transaction of stockTransactions) {
+          try {
+            const stockData = await stocksAPI.getStockDetails(transaction.symbol);
+            stocksCurrentValue += stockData.currentPrice * transaction.quantity;
+          } catch (error) {
+            stocksCurrentValue += transaction.quantity * transaction.averagePrice;
+          }
+        }
+        investments.stocks.currentValue = stocksCurrentValue;
+        currentValue += stocksCurrentValue;
+      } else {
+        currentValue += investments.stocks.currentValue;
+      }
+
+      // For Mutual Funds, calculate real current value
+      if (mfData && investments.mf.count > 0) {
+        const mfTransactions = JSON.parse(mfData);
+        let mfCurrentValue = 0;
+        for (const transaction of mfTransactions) {
+          try {
+            const fundData = await mutualFundsAPI.getFundDetails(transaction.schemeCode);
+            mfCurrentValue += transaction.units * fundData.nav.currentNAV;
+          } catch (error) {
+            mfCurrentValue += transaction.investmentAmount;
+          }
+        }
+        investments.mf.currentValue = mfCurrentValue;
+        currentValue += mfCurrentValue;
+      } else {
+        currentValue += investments.mf.currentValue;
+      }
+
+      // For Crypto, assume current value equals invested amount (simplified)
+      if (investments.crypto.total > 0) {
+        currentValue += investments.crypto.total;
+      }
+
+      const totalGain = currentValue - totalInvestment;
+      const gainPercentage = totalInvestment > 0 ? (totalGain / totalInvestment) * 100 : 0;
+
       const portfolioData = {
         totalInvestment,
+        currentValue,
+        totalGain,
+        gainPercentage,
         investments,
       };
 
@@ -134,6 +270,11 @@ const DashboardScreen = ({ navigation }) => {
   const renderInvestmentCard = (investmentType) => {
     const investment = INVESTMENT_TYPES[investmentType];
     const data = portfolioData.investments[investment.id];
+    
+    // Calculate percentage of total portfolio
+    const percentage = portfolioData.totalInvestment > 0 
+      ? (data.total / portfolioData.totalInvestment) * 100 
+      : 0;
 
     return (
       <Card
@@ -151,10 +292,37 @@ const DashboardScreen = ({ navigation }) => {
           navigation.navigate(screenName, { investmentId: investment.id });
         }}
       >
-        <Card.Content>
-          <Title style={{ color: investment.color }}>{investment.name}</Title>
-          <Paragraph>Total: {formatCurrency(data.total)}</Paragraph>
-          <Paragraph>Number of Investments: {data.count}</Paragraph>
+        <Card.Content style={styles.cardContent}>
+          <View style={styles.cardHeader}>
+            <View style={styles.titleContainer}>
+              <Text style={[styles.cardTitle, { color: investment.color }]}>
+                {investment.name}
+              </Text>
+            </View>
+            <View style={styles.percentageContainer}>
+              <Text style={styles.percentageText}>
+                {percentage.toFixed(1)}%
+              </Text>
+            </View>
+          </View>
+          
+          <View style={styles.amountContainer}>
+            <Text style={styles.amountText}>
+              {formatCurrency(data.currentValue, 0)}
+            </Text>
+          </View>
+          
+          <View style={styles.countContainer}>
+            <Text style={styles.countText}>
+              {data.count} {data.count === 1 ? 'investment' : 'investments'}
+            </Text>
+          </View>
+          
+          <View style={styles.progressContainer}>
+            <View style={[styles.progressBar, { width: `${percentage}%`, backgroundColor: investment.color }]} />
+          </View>
+          
+          <Text style={styles.progressLabel}>Portfolio allocation</Text>
         </Card.Content>
       </Card>
     );
@@ -163,17 +331,31 @@ const DashboardScreen = ({ navigation }) => {
   return (
     <ScrollView style={styles.container}>
       <Surface style={styles.totalCard}>
-        <Title style={styles.totalTitle}>Total Portfolio Value</Title>
-        <Title style={styles.totalAmount}>
-          {formatCurrency(portfolioData.totalInvestment)}
-        </Title>
-        <Button 
-          mode="contained" 
-          onPress={clearAllData}
-          style={{ marginTop: 10, backgroundColor: '#ff5252' }}
-        >
-          Clear All Data
-        </Button>
+        <Text style={styles.totalAmount}>
+          {formatCurrency(portfolioData.currentValue, 0)}
+        </Text>
+        <View style={styles.gainLossContainer}>
+          <Text style={[
+            styles.gainLossIcon,
+            { color: portfolioData.totalGain >= 0 ? '#4CAF50' : '#F44336' }
+          ]}>
+            {portfolioData.totalGain >= 0 ? '▲' : '▼'}
+          </Text>
+          <View style={styles.gainLossTextContainer}>
+            <Text style={[
+              styles.gainLossAmount,
+              { color: portfolioData.totalGain >= 0 ? '#4CAF50' : '#F44336' }
+            ]}>
+              {portfolioData.totalGain >= 0 ? '+' : ''}{formatCurrency(portfolioData.totalGain, 0)}
+            </Text>
+            <Text style={[
+              styles.gainLossPercentage,
+              { color: portfolioData.totalGain >= 0 ? '#4CAF50' : '#F44336' }
+            ]}>
+              ({portfolioData.gainPercentage >= 0 ? '+' : ''}{portfolioData.gainPercentage.toFixed(2)}%)
+            </Text>
+          </View>
+        </View>
       </Surface>
 
       <View style={styles.cardsContainer}>
@@ -197,14 +379,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#6200ee',
   },
-  totalTitle: {
-    color: '#fff',
-    fontSize: 18,
-  },
   totalAmount: {
     color: '#fff',
-    fontSize: 24,
-    marginTop: 8,
+    fontSize: 32,
+    fontWeight: '700',
+    textAlign: 'left',
   },
   cardsContainer: {
     padding: 8,
@@ -213,6 +392,88 @@ const styles = StyleSheet.create({
     marginVertical: 8,
     marginHorizontal: 8,
     elevation: 2,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+  },
+  cardContent: {
+    padding: 16,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  titleContainer: {
+    flex: 1,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1a1a1a',
+  },
+  percentageContainer: {
+    alignItems: 'flex-end',
+  },
+  percentageText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+  },
+  amountContainer: {
+    marginBottom: 4,
+  },
+  amountText: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1a1a1a',
+  },
+  countContainer: {
+    marginBottom: 12,
+  },
+  countText: {
+    fontSize: 13,
+    color: '#666',
+    fontWeight: '500',
+  },
+  progressContainer: {
+    height: 6,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginBottom: 4,
+  },
+  progressBar: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  progressLabel: {
+    fontSize: 11,
+    color: '#888',
+    fontWeight: '500',
+  },
+  gainLossContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  gainLossIcon: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginRight: 4,
+  },
+  gainLossTextContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  gainLossAmount: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  gainLossPercentage: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginLeft: 4,
   },
 });
 
