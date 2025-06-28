@@ -3,11 +3,13 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
 
 import AddCryptoScreen from '../screens/AddCryptoScreen';
+import AddGoldScreen from '../screens/AddGoldScreen';
 import AddMutualFundScreen from '../screens/AddMutualFundScreen';
 import AddStockScreen from '../screens/AddStockScreen';
 import CryptocurrencyScreen from '../screens/CryptocurrencyScreen';
 import DashboardScreen from '../screens/DashboardScreen';
 import FixedDepositScreen from '../screens/FixedDepositScreen';
+import GoldDepositScreen from '../screens/GoldDepositScreen';
 import ImportMutualFundScreen from '../screens/ImportMutualFundScreen';
 import MutualFundsScreen from '../screens/MutualFundsScreen';
 import RecurringDepositScreen from '../screens/RecurringDepositScreen';
@@ -83,6 +85,16 @@ const AppNavigator = () => {
           name="AddCrypto" 
           component={AddCryptoScreen}
           options={{ title: 'Add Cryptocurrency' }}
+        />
+        <Stack.Screen 
+          name="GoldDeposit" 
+          component={GoldDepositScreen}
+          options={{ title: 'Gold Deposits' }}
+        />
+        <Stack.Screen 
+          name="AddGold" 
+          component={AddGoldScreen}
+          options={{ title: 'Add Gold Deposit' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

@@ -28,6 +28,12 @@ export const INVESTMENT_TYPES = {
     name: 'Cryptocurrency',
     color: '#F44336',
   },
+  GOLD_DEPOSIT: {
+    id: 'gold',
+    name: 'Gold Deposits',
+    icon: 'diamond',
+    color: '#FFD700',
+  },
 };
 
 export const formatCurrency = (amount, decimals = 2) => {
